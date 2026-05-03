@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "freelancer-finance-app",
+    "dev": "freelancer-finance-app-dev",
+    "prod": "freelancer-finance-app"
+  }
+}

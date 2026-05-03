@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Freelancer Finance App — Storage security rules.
+// Translates ARCHITECTURE.md §4: per-user isolation, 10 MB max per file,
+// only PDF / PNG / JPEG / HEIC content types accepted on writes.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAllowedContentType() {
+      return request.resource.contentType.matches(
+        'application/pdf|image/png|image/jpeg|image/heic|image/heif'
+      );
+    }
+
+    function isUnderSizeLimit() {
+      // 10 MB per file (ARCHITECTURE.md §4).
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Receipt and attachment uploads are scoped under each user's UID:
+    //   users/{uid}/invoices/{invoiceId}/{filename}
+    //   users/{uid}/expenses/{expenseId}/{filename}
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+        && isUnderSizeLimit()
+        && isAllowedContentType();
+      allow delete: if isOwner(userId);
+    }
+  }
+}
