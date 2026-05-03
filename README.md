@@ -23,3 +23,16 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full technical spec, including 
 ## Status
 
 This project is in the architecture/specification phase. No code implementation has begun yet. See [ARCHITECTURE.md](./ARCHITECTURE.md) before starting development.
+
+## Local checks
+
+Run the same checks CI runs on every PR (Node 20 LTS):
+
+```sh
+npm ci
+npm run lint
+npm run typecheck
+npm test -- --watchAll=false
+```
+
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, and `test` on every pull request and on pushes to `main`.
