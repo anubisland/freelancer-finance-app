@@ -1,0 +1,87 @@
+name: Daily Release
+
+on:
+  schedule:
+    - cron: '0 8 * * 1-5'   # 08:00 UTC, Mon–Fri
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  hygiene:
+    name: hygiene gate
+    uses: anubisland/.github/.github/workflows/release-hygiene-gate.yml@v1
+    with:
+      enforce: warn             # flip to 'fail' after 48 h of clean warn-mode runs
+
+  build-android:
+    name: build android (APK)
+    needs: hygiene
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() && needs.hygiene.result != 'failure' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build Android APK
+        run: |
+          echo "Android APK build placeholder — wire React Native fastlane / Gradle build here"
+          echo "Release version: ${GITHUB_REF_NAME#v}"
+
+  build-ios:
+    name: build ios (TestFlight)
+    needs: hygiene
+    runs-on: macos-latest
+    if: ${{ !cancelled() && needs.hygiene.result != 'failure' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build iOS for TestFlight
+        run: |
+          echo "iOS TestFlight build placeholder — wire React Native fastlane / Xcode build here"
+          echo "Release version: ${GITHUB_REF_NAME#v}"
+
+  build-web:
+    name: build web (Firebase Hosting)
+    needs: hygiene
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() && needs.hygiene.result != 'failure' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build web app
+        run: |
+          echo "Web build placeholder — wire React / Firebase Hosting build here"
+          echo "Release version: ${GITHUB_REF_NAME#v}"
+
+  notify:
+    name: notify release
+    needs: [build-android, build-ios, build-web]
+    if: ${{ always() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release summary
+        run: |
+          echo "## Daily Release Summary"
+          echo "Android: ${{ needs.build-android.result }}"
+          echo "iOS:     ${{ needs.build-ios.result }}"
+          echo "Web:     ${{ needs.build-web.result }}"
+          echo "Ref:     ${{ github.ref }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
